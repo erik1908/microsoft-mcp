@@ -5,6 +5,24 @@ from typing import Any
 from fastmcp import FastMCP
 from . import graph, auth
 
+import json as _json
+
+def _parse_str_or_list(val):
+    """Handle JSON-stringified arrays from MCP clients."""
+    if val is None:
+        return None
+    if isinstance(val, list):
+        return val
+    if isinstance(val, str):
+        try:
+            parsed = _json.loads(val)
+            if isinstance(parsed, list):
+                return parsed
+        except (ValueError, TypeError):
+            pass
+        return [val]
+    return [val]
+
 mcp = FastMCP("microsoft-mcp")
 
 FOLDERS = {
@@ -219,7 +237,7 @@ def create_email_draft(
     attachments: str | list[str] | None = None,
 ) -> dict[str, Any]:
     """Create an email draft with file path(s) as attachments"""
-    to_list = [to] if isinstance(to, str) else to
+    to_list = _parse_str_or_list(to)
 
     message = {
         "subject": subject,
@@ -228,7 +246,7 @@ def create_email_draft(
     }
 
     if cc:
-        cc_list = [cc] if isinstance(cc, str) else cc
+        cc_list = _parse_str_or_list(cc)
         message["ccRecipients"] = [
             {"emailAddress": {"address": addr}} for addr in cc_list
         ]
@@ -239,7 +257,7 @@ def create_email_draft(
     if attachments:
         # Convert single path to list
         attachment_paths = (
-            [attachments] if isinstance(attachments, str) else attachments
+            _parse_str_or_list(attachments)
         )
         for file_path in attachment_paths:
             path = pl.Path(file_path).expanduser().resolve()
@@ -295,7 +313,7 @@ def send_email(
     attachments: str | list[str] | None = None,
 ) -> dict[str, str]:
     """Send an email immediately with file path(s) as attachments"""
-    to_list = [to] if isinstance(to, str) else to
+    to_list = _parse_str_or_list(to)
 
     message = {
         "subject": subject,
@@ -304,7 +322,7 @@ def send_email(
     }
 
     if cc:
-        cc_list = [cc] if isinstance(cc, str) else cc
+        cc_list = _parse_str_or_list(cc)
         message["ccRecipients"] = [
             {"emailAddress": {"address": addr}} for addr in cc_list
         ]
@@ -316,7 +334,7 @@ def send_email(
     if attachments:
         # Convert single path to list
         attachment_paths = (
-            [attachments] if isinstance(attachments, str) else attachments
+            _parse_str_or_list(attachments)
         )
         for file_path in attachment_paths:
             path = pl.Path(file_path).expanduser().resolve()
@@ -350,14 +368,14 @@ def send_email(
     elif has_large_attachments:
         # Create draft first, then add large attachments, then send
         # We need to handle large attachments manually here
-        to_list = [to] if isinstance(to, str) else to
+        to_list = _parse_str_or_list(to)
         message = {
             "subject": subject,
             "body": {"contentType": "Text", "content": body},
             "toRecipients": [{"emailAddress": {"address": addr}} for addr in to_list],
         }
         if cc:
-            cc_list = [cc] if isinstance(cc, str) else cc
+            cc_list = _parse_str_or_list(cc)
             message["ccRecipients"] = [
                 {"emailAddress": {"address": addr}} for addr in cc_list
             ]
