@@ -235,13 +235,15 @@ def create_email_draft(
     body: str,
     cc: str | list[str] | None = None,
     attachments: str | list[str] | None = None,
+    body_type: str = "Text",
 ) -> dict[str, Any]:
     """Create an email draft with file path(s) as attachments"""
     to_list = _parse_str_or_list(to)
+    content_type = "HTML" if body_type.lower() == "html" else "Text"
 
     message = {
         "subject": subject,
-        "body": {"contentType": "Text", "content": body},
+        "body": {"contentType": content_type, "content": body},
         "toRecipients": [{"emailAddress": {"address": addr}} for addr in to_list],
     }
 
@@ -590,7 +592,8 @@ def update_event(
     if "location" in updates:
         formatted_updates["location"] = {"displayName": updates["location"]}
     if "body" in updates:
-        formatted_updates["body"] = {"contentType": "Text", "content": updates["body"]}
+        body_ct = "HTML" if updates.get("body_type", "").lower() == "html" else "Text"
+        formatted_updates["body"] = {"contentType": body_ct, "content": updates["body"]}
 
     result = graph.request(
         "PATCH", f"/me/events/{event_id}", account_id, json=formatted_updates
